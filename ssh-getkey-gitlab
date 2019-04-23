@@ -1,0 +1,82 @@
+#!/bin/sh
+# vim: set ts=4:
+#
+# This script finds and prints authorized SSH public keys in GitLab for the
+# username specified as the first argument.
+#
+# The program must be owned by root and not writable by group or others.
+# It expects configuration file /etc/ssh/getkey-gitlab.conf.
+#
+# sshd_config for OpenSSH 6.2+:
+#
+#   AuthorizedKeysCommand /usr/local/bin/ssh-getkey-gitlab
+#   AuthorizedKeysCommandUser sshd
+#
+# Please report issues at <https://github.com/jirutka/ssh-getkey-gitlab/issues>.
+set -eu
+
+readonly PROGNAME='ssh-getkey-gitlab'
+readonly VERSION='0.0.0'
+readonly CONF_FILE='/etc/ssh/getkey-gitlab.conf'
+
+log() {
+	logger -s -t sshd -p "auth.$1" "gitlab: $2"
+}
+
+die() {
+	log err "$1"
+	exit 1
+}
+
+
+case "${1:-}" in
+	-h | --help | '') echo "Usage: $0 [-h | -V] USERNAME"; exit 0;;
+	-V | --version) echo "$PROGNAME $VERSION"; exit 0;;
+esac
+
+if ! [ -r "$CONF_FILE" ]; then
+	die "file $CONF_FILE does not exist or not readable"
+fi
+
+. "$CONF_FILE"
+: ${timeout:=5}
+: ${cache_dir:="/var/cache/$PROGNAME"}
+
+if [ -z "${gitlab_url:-}" ]; then
+	die "missing \$gitlab_url in $CONF_FILE"
+fi
+
+uid="$1"
+cache_file="$cache_dir/$uid.keys"
+
+if ! expr "$uid" : '[a-zA-Z0-9._-]*$' 1>/dev/null; then
+	die "bad characters in username: $uid"
+fi
+
+src='GitLab'
+keys=$(wget -q -O - -T "$timeout" "$gitlab_url/users/$uid.keys") || {
+	case "$?" in
+		4|7) log warn 'network failure, trying cached keys...';;
+		8) log warn 'GitLab issued an error response, trying cached keys...';;
+		5) die 'SSL verification failure';;
+		6) die "user $uid not found in GitLab";;
+		*) die "wget failed with status code $?";;
+	esac
+	src='cache'
+	keys=$(cat "$cache_file" 2>/dev/null || :)
+}
+
+keys_count=$(echo "$keys" | grep '^ssh' | wc -l)
+
+log info "loaded $keys_count SSH public key(s) from $src for user: $uid"
+
+if [ "$keys_count" -gt 0 ] && [ "$src" != 'cache' ]; then
+	if [ -d "$cache_dir" ] && [ -w "$cache_dir" ]; then
+		printf '%s\n' "$keys" > "$cache_file"
+		chmod 600 "$cache_file"
+	else
+		log warn "cache_dir $cache_dir does not exist or not writable!"
+	fi
+fi
+
+printf '%s\n' "$keys"
