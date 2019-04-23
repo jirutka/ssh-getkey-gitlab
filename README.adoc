@@ -1,6 +1,6 @@
 = OpenSSH, look up public keys in GitLab!
 :name: ssh-getkey-gitlab
-:version: 0.0.0
+:version: 0.1.0
 :gh-name: jirutka/{name}
 :script-name: {name}
 :cfgfile-name: getkey-gitlab.conf
