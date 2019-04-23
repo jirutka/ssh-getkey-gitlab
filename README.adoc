@@ -2,8 +2,89 @@
 :name: ssh-getkey-gitlab
 :version: 0.0.0
 :gh-name: jirutka/{name}
+:script-name: {name}
+:cfgfile-name: getkey-gitlab.conf
+:file-uri: https://raw.githubusercontent.com/{gh-name}/v{version}
 
-TODO
+This project provides a simple script to be used as `AuthorizedKeysCommand` in OpenSSH server to fetch authorized keys from GitLab or GitHub.
+The script stores the fetched keys in a cache directory and automatically fallbacks to the cached keys in case of network or GitLab failure.
+It’s written in POSIX shell and requires just one dependency: wget (both GNU and Busybox wget are supported).
+
+
+== Requirements
+
+* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html[POSIX-sh] compatible shell (e.g. Busybox ash, dash, ZSH, bash, …)
+* `wget` (GNU or Busybox)
+
+
+== Installation
+
+=== Using git and make
+
+[source, sh, subs="verbatim, attributes"]
+----
+git clone -b v{version} https://github.com/{gh-name}.git
+cd {name}
+make install
+----
+
+Standard GNU Makefile variables such as `DESTDIR`, `prefix`, `sbindir`… are supported.
+
+
+=== Manual
+
+[source, sh, subs="verbatim, attributes"]
+----
+cd /usr/local/sbin
+wget {file-uri}/{script-name}
+chown root:root {script-name}
+chmod 0755 {script-name}
+
+cd /etc/ssh
+wget {file-uri}/{cfgfile-name}
+chown root:root {cfgfile-name}
+chmod 0644 {cfgfile-name}
+vim {cfgfile-name}  # read next section
+
+install -m 700 -o sshd -o nogroup -d /var/cache/ssh-getkey-gitlab
+----
+
+
+== Configuration
+
+The script reads configuration from `/etc/ssh/{cfgfile-name}`.
+
+The file format is a shell script.
+The configuration variables are as follows:
+
+gitlab_url::
+  The base URL of the GitLab instance to fetch the keys from.
+
+timeout::
+  The network timeout in seconds.
+  Default is 5.
+
+cache_dir::
+  Path of directory where to store fetched SSH keys.
+  Default is `/var/cache/ssh-getkey-gitlab`.
+
+
+== Setup OpenSSH server
+
+To configure OpenSSH server to fetch users’ authorized keys from GitLab server:
+
+. Make sure that you have installed `{script-name}` in `/usr/local/sbin` (or `/usr/sbin`) with owner `root` and mode `0755`.
+. Add these two lines into `/etc/ssh/sshd_config`:
++
+[source, subs="verbatim, attributes"]
+----
+AuthorizedKeysCommand /usr/local/sbin/{script-name}
+AuthorizedKeysCommandUser sshd
+----
+
+. Restart sshd and check log file if there’s no problem.
+
+Note: This method is supported by OpenSSH since version 6.2-p1 (or 5.3 onRedHat).
 
 
 == License
