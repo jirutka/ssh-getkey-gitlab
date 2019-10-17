@@ -16,7 +16,7 @@
 set -eu
 
 readonly PROGNAME='ssh-getkey-gitlab'
-readonly VERSION='0.1.0'
+readonly VERSION='0.2.0'
 readonly CONF_FILE='/etc/ssh/getkey-gitlab.conf'
 
 log() {
