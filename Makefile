@@ -35,7 +35,7 @@ release: .check-git-clean | bump-version
 	test -n "$(VERSION)"  # $$VERSION
 	$(GIT) add .
 	$(GIT) commit -m "Release version $(VERSION)"
-	$(GIT) tag v$(VERSION) -m v$(VERSION)
+	$(GIT) tag -s v$(VERSION) -m v$(VERSION)
 
 #: Print list of targets.
 help:
