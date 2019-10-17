@@ -39,6 +39,7 @@ if ! [ -r "$CONF_FILE" ]; then
 fi
 
 . "$CONF_FILE"
+: ${minimum_uid:=1000}
 : ${timeout:=5}
 : ${cache_dir:="/var/cache/$PROGNAME"}
 
@@ -47,11 +48,17 @@ if [ -z "${gitlab_url:-}" ]; then
 fi
 
 uname="$1"
-cache_file="$cache_dir/$uname.keys"
-
 if ! expr "$uname" : '[a-zA-Z0-9._-]*$' 1>/dev/null; then
 	die "bad characters in username: $uname"
 fi
+
+uid=$(id -u "$uname")
+if [ "$uid" -lt "$minimum_uid" ]; then
+	log debug "user $uname ($uid) has uid < $minimum_uid"
+	exit 2
+fi
+
+cache_file="$cache_dir/$uname.keys"
 
 src='GitLab'
 keys=$(wget -q -O - -T "$timeout" "$gitlab_url/users/$uname.keys") || {

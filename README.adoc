@@ -60,6 +60,10 @@ The configuration variables are as follows:
 gitlab_url::
   The base URL of the GitLab instance to fetch the keys from.
 
+minimum_uid::
+  Ignore users with UID lower than the specified number.
+  Default is 1000.
+
 timeout::
   The network timeout in seconds.
   Default is 5.
