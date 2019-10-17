@@ -46,20 +46,20 @@ if [ -z "${gitlab_url:-}" ]; then
 	die "missing \$gitlab_url in $CONF_FILE"
 fi
 
-uid="$1"
-cache_file="$cache_dir/$uid.keys"
+uname="$1"
+cache_file="$cache_dir/$uname.keys"
 
-if ! expr "$uid" : '[a-zA-Z0-9._-]*$' 1>/dev/null; then
-	die "bad characters in username: $uid"
+if ! expr "$uname" : '[a-zA-Z0-9._-]*$' 1>/dev/null; then
+	die "bad characters in username: $uname"
 fi
 
 src='GitLab'
-keys=$(wget -q -O - -T "$timeout" "$gitlab_url/users/$uid.keys") || {
+keys=$(wget -q -O - -T "$timeout" "$gitlab_url/users/$uname.keys") || {
 	case "$?" in
 		4|7) log warn 'network failure, trying cached keys...';;
 		8) log warn 'GitLab issued an error response, trying cached keys...';;
 		5) die 'SSL verification failure';;
-		6) die "user $uid not found in GitLab";;
+		6) die "user $uname not found in GitLab";;
 		*) die "wget failed with status code $?";;
 	esac
 	src='cache'
@@ -68,7 +68,7 @@ keys=$(wget -q -O - -T "$timeout" "$gitlab_url/users/$uid.keys") || {
 
 keys_count=$(echo "$keys" | grep '^ssh' | wc -l)
 
-log info "loaded $keys_count SSH public key(s) from $src for user: $uid"
+log info "loaded $keys_count SSH public key(s) from $src for user: $uname"
 
 if [ "$keys_count" -gt 0 ] && [ "$src" != 'cache' ]; then
 	if [ -d "$cache_dir" ] && [ -w "$cache_dir" ]; then
