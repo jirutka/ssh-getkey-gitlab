@@ -46,7 +46,7 @@ chown root:root {cfgfile-name}
 chmod 0644 {cfgfile-name}
 vim {cfgfile-name}  # read next section
 
-install -m 700 -o sshd -o nogroup -d /var/cache/ssh-getkey-gitlab
+install -m 700 -o sshd -g nogroup -d /var/cache/ssh-getkey-gitlab
 ----
 
 
